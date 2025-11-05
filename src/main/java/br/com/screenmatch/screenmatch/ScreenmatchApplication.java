@@ -1,6 +1,8 @@
 package br.com.screenmatch.screenmatch;
 
-import br.com.screenmatch.models.Serie;
+import br.com.screenmatch.models.EpisodeData;
+import br.com.screenmatch.models.SeasonData;
+import br.com.screenmatch.models.SerieData;
 import br.com.screenmatch.service.ApiRequests;
 import br.com.screenmatch.service.ParseData;
 import org.springframework.boot.CommandLineRunner;
@@ -24,7 +26,11 @@ public class ScreenmatchApplication implements CommandLineRunner {
 		System.out.println(json);
 
 		ParseData parser = new ParseData();
-		Serie data = parser.getData(json, Serie.class);
+		SerieData data = parser.getData(json, SerieData.class);
 		System.out.println(data);
+
+		json = apiRequests.getData("https://www.omdbapi.com/?t=dark&season=1&apikey=5c7784a4");
+		SeasonData seasonData = parser.getData(json, SeasonData.class);
+		System.out.println(seasonData);
 	}
 }

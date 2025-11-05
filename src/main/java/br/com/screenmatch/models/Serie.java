@@ -1,10 +1,17 @@
 package br.com.screenmatch.models;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.ArrayList;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-public record Serie(@JsonAlias("Title") String title,
-                    int totalSeasons,
-                    double imdbRating) {
+public class Serie {
+    private String title;
+    private int totalSeasons;
+    private ArrayList<SeasonData> seasons;
+    private String releasedDate;
+
+    public void Serie(String title, int totalSeasons, ArrayList<SeasonData> seasons, String releasedDate) {
+        this.title = title;
+        this.totalSeasons = totalSeasons;
+        this.seasons = seasons;
+        this.releasedDate = releasedDate;
+    }
 }
