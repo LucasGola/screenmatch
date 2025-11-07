@@ -2,6 +2,7 @@ package br.com.screenmatch.main;
 
 import br.com.screenmatch.models.Episode;
 import br.com.screenmatch.models.SeasonData;
+import br.com.screenmatch.models.Serie;
 import br.com.screenmatch.models.SerieData;
 import br.com.screenmatch.service.ApiRequests;
 import br.com.screenmatch.service.ParseData;
@@ -16,49 +17,69 @@ public class MainFunction {
     private List<SeasonData> seasons = new ArrayList<>();
     private final String URL_BASE = "https://www.omdbapi.com/?t=";
     private final String API_KEY = "&apikey=5c7784a4";
+    private List<Serie> serieDataList = new ArrayList<>();
 
     public void showMenu() {
-        System.out.print("Digite o Título que deseja buscar: ");
-        var title = sc.nextLine();
-        var json = apiRequests.getData(URL_BASE + title.replace(" ", "+") + API_KEY);
-        SerieData data = parser.getData(json, SerieData.class);
-        System.out.println(data);
+        int option;
 
-        for (int i = 1; i<=data.totalSeasons(); i++) {
-            json = apiRequests.getData(URL_BASE + title.replace(" ", "+") + "&season=" + i + API_KEY);
+        do {
+            String menu = """
+                    1 - Buscar séries
+                    2 - Buscar episódios
+                    3 - Listar series
+                    
+                    0 - Sair
+                    """;
+
+            System.out.println(menu);
+            option = sc.nextInt();
+            sc.nextLine();
+
+            switch (option) {
+                case 1:
+                    searchSerie();
+                    break;
+                case 2:
+                    searchEpisode();
+                    break;
+                case 3:
+                    displaySeries();
+                    break;
+                case 0:
+                    System.out.println("Saindo...");
+                    break;
+                default:
+                    System.out.println("Opção inválida!");
+            }
+        } while (option != 0);
+    }
+
+    private void searchSerie() {
+        SerieData data = getSerieData();
+        serieDataList.add(new Serie(data));
+        System.out.println(data);
+    }
+
+    private SerieData getSerieData() {
+        System.out.println("Qual série deseja buscar?");
+        String title = sc.nextLine();
+        var json = apiRequests.getData(URL_BASE + title.replace(" ", "+") + API_KEY);
+        return parser.getData(json, SerieData.class);
+    }
+
+    private void searchEpisode() {
+        SerieData serieData = getSerieData();
+        List<SeasonData> seasons = new ArrayList<>();
+
+        for (int i = 1; i <= serieData.totalSeasons(); i++) {
+            var json = apiRequests.getData(URL_BASE + serieData.title().replace(" ", "+") + "&season=" + i + API_KEY);
             SeasonData seasonData = parser.getData(json, SeasonData.class);
             seasons.add(seasonData);
         }
-
         seasons.forEach(System.out::println);
+    }
 
-        List<Episode> episodeList = seasons.stream()
-                .flatMap(s -> s.episodes().stream()
-                        .map(e -> new Episode(s.season(), e))
-                ).toList();
-
-//        System.out.println("Qual episódio está buscando?");
-//        var search = sc.nextLine();
-//        Optional<Episode> findedEpisode = episodeList.stream()
-//                .filter(e -> e.getTitle().toUpperCase().contains(search.toUpperCase()))
-//                .findAny();
-//
-//        if (findedEpisode.isPresent()) {
-//            System.out.println("Episódio encontrado!");
-//            System.out.println("Temporada: " + findedEpisode.get().getSeason());
-//        } else {
-//            System.out.println("Nenhum episódio encontrado");
-//        }
-
-        Map<Integer, Double> ratingPerSeason = episodeList.stream()
-                .filter(e -> e.getRating() > 0.0)
-                .collect(Collectors.groupingBy(Episode::getSeason,
-                        Collectors.averagingDouble(Episode::getRating)));
-        System.out.println(ratingPerSeason);
-
-        DoubleSummaryStatistics est = episodeList.stream()
-                .filter(e -> e.getRating() > 0.0)
-                .collect(Collectors.summarizingDouble(Episode::getRating));
-        System.out.println(est);
+    private void displaySeries() {
+        serieDataList.forEach(System.out::println);
     }
 }
