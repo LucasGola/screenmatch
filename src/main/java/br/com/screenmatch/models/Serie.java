@@ -1,11 +1,11 @@
 package br.com.screenmatch.models;
 
+import br.com.screenmatch.types.Genres;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class Serie {
@@ -15,7 +15,7 @@ public class Serie {
     private LocalDate releasedDate;
     private Double rating;
     private Integer totalVotes;
-    private List<String> genre = new ArrayList<>();
+    private List<Genres> genre = new ArrayList<>();
     private List<String> actors = new ArrayList<>();
     private String plot;
     private String poster;
@@ -41,7 +41,7 @@ public class Serie {
             this.releasedDate = null;
         }
 
-        this.rating = serieData.rating();
+        this.rating = OptionalDouble.of(serieData.rating()).orElse(0);
 
         try {
             this.totalVotes = Integer.valueOf(serieData.totalVotes().replace(",", ""));
@@ -50,15 +50,17 @@ public class Serie {
         }
 
         try {
-            this.genre = Stream.of(serieData.genre().split("\\s*,\\s*"))
+            this.genre = Stream.of(serieData.genre().split(","))
                     .map(String::trim)
+                    .map(Genres::fromForeignName)
+                    .filter(Objects::nonNull)
                     .toList();
         } catch (NullPointerException ex) {
-            this.genre = null;
+            this.genre = List.of();
         }
 
         try {
-            this.actors = Stream.of(serieData.actors().split("\\s*,\\s*"))
+            this.actors = Stream.of(serieData.actors().split(","))
                     .map(String::trim)
                     .toList();;
         } catch (NullPointerException ex) {
@@ -80,6 +82,10 @@ public class Serie {
                 ", genre=" + genre +
                 ", actors=" + actors +
                 ", plot='" + plot + '\'' +
-                ", poster='" + poster;
+                ", poster='" + poster + '\'';
+    }
+
+    public String getTitle() {
+        return this.title;
     }
 }

@@ -1,6 +1,5 @@
 package br.com.screenmatch.main;
 
-import br.com.screenmatch.models.Episode;
 import br.com.screenmatch.models.SeasonData;
 import br.com.screenmatch.models.Serie;
 import br.com.screenmatch.models.SerieData;
@@ -8,16 +7,15 @@ import br.com.screenmatch.service.ApiRequests;
 import br.com.screenmatch.service.ParseData;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class MainFunction {
-    private Scanner sc = new Scanner(System.in);
-    private ApiRequests apiRequests = new ApiRequests();
+    private final Scanner SC = new Scanner(System.in);
+    private final ApiRequests API_REQUESTS = new ApiRequests();
     private ParseData parser = new ParseData();
     private List<SeasonData> seasons = new ArrayList<>();
     private final String URL_BASE = "https://www.omdbapi.com/?t=";
     private final String API_KEY = "&apikey=5c7784a4";
-    private List<Serie> serieDataList = new ArrayList<>();
+    private List<Serie> seriesList = new ArrayList<>();
 
     public void showMenu() {
         int option;
@@ -32,8 +30,8 @@ public class MainFunction {
                     """;
 
             System.out.println(menu);
-            option = sc.nextInt();
-            sc.nextLine();
+            option = SC.nextInt();
+            SC.nextLine();
 
             switch (option) {
                 case 1:
@@ -56,14 +54,14 @@ public class MainFunction {
 
     private void searchSerie() {
         SerieData data = getSerieData();
-        serieDataList.add(new Serie(data));
+        seriesList.add(new Serie(data));
         System.out.println(data);
     }
 
     private SerieData getSerieData() {
         System.out.println("Qual série deseja buscar?");
-        String title = sc.nextLine();
-        var json = apiRequests.getData(URL_BASE + title.replace(" ", "+") + API_KEY);
+        String title = SC.nextLine();
+        var json = API_REQUESTS.getData(URL_BASE + title.replace(" ", "+") + API_KEY);
         return parser.getData(json, SerieData.class);
     }
 
@@ -72,7 +70,7 @@ public class MainFunction {
         List<SeasonData> seasons = new ArrayList<>();
 
         for (int i = 1; i <= serieData.totalSeasons(); i++) {
-            var json = apiRequests.getData(URL_BASE + serieData.title().replace(" ", "+") + "&season=" + i + API_KEY);
+            var json = API_REQUESTS.getData(URL_BASE + serieData.title().replace(" ", "+") + "&season=" + i + API_KEY);
             SeasonData seasonData = parser.getData(json, SeasonData.class);
             seasons.add(seasonData);
         }
@@ -80,6 +78,8 @@ public class MainFunction {
     }
 
     private void displaySeries() {
-        serieDataList.forEach(System.out::println);
+        seriesList.stream()
+                        .sorted(Comparator.comparing(Serie::getTitle))
+                        .forEach(System.out::println);
     }
 }
