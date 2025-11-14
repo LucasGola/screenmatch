@@ -1,26 +1,56 @@
 package br.com.screenmatch.models;
 
+import br.com.screenmatch.repository.ActorRepository;
+import br.com.screenmatch.repository.GenreRepository;
 import br.com.screenmatch.types.Genres;
+import jakarta.persistence.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import br.com.screenmatch.models.Genre;
 
+@Entity
+@Table(name = "series")
 public class Serie {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     private String title;
     private Integer totalSeasons;
-    private List<SeasonData> seasons;
     private LocalDate releasedDate;
     private Double rating;
     private Integer totalVotes;
-    private List<Genres> genre = new ArrayList<>();
-    private List<String> actors = new ArrayList<>();
     private String plot;
     private String poster;
 
-//    public void Serie(String title, int totalSeasons, List<SeasonData> seasons, LocalDate releasedDate, List<String> genre, List<String> actors, String plot, String porter) {
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "series_genres",
+            joinColumns = @JoinColumn(name = "serie_id"),
+            inverseJoinColumns = @JoinColumn(name = "genre_id")
+    )
+    private Set<Genre> genres = new HashSet<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "series_actors",
+            joinColumns = @JoinColumn(name = "serie_id"),
+            inverseJoinColumns = @JoinColumn(name = "actor_id")
+    )
+    private Set<Actor> actors = new HashSet<>();
+
+
+
+
+    @Transient
+    private List<SeasonData> seasons;
+
+//    public Serie(String title, int totalSeasons, List<SeasonData> seasons, LocalDate releasedDate, List<String> genre, List<String> actors, String plot, String porter) {
 //        this.title = title;
 //        this.totalSeasons = totalSeasons;
 //        this.seasons = seasons;
@@ -31,58 +61,66 @@ public class Serie {
 //        this.poster = poster;
 //    }
 
-    public Serie(SerieData serieData) {
+    public Serie() {
+    }
+
+    public Serie(SerieData serieData,
+                 GenreRepository genreRepo,
+                 ActorRepository actorRepo) {
+
         this.title = serieData.title();
         this.totalSeasons = serieData.totalSeasons();
 
         try {
-            this.releasedDate = LocalDate.parse(serieData.releasedDate(), DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH));
-        } catch (DateTimeParseException ex) {
+            this.releasedDate = LocalDate.parse(
+                    serieData.releasedDate(),
+                    DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH)
+            );
+        } catch (Exception ex) {
             this.releasedDate = null;
         }
 
-        this.rating = OptionalDouble.of(serieData.rating()).orElse(0);
+        this.rating = serieData.rating();
+        this.totalVotes = Integer.valueOf(serieData.totalVotes().replace(",", ""));
 
-        try {
-            this.totalVotes = Integer.valueOf(serieData.totalVotes().replace(",", ""));
-        } catch (NumberFormatException ex) {
-            this.totalVotes = null;
-        }
-
-        try {
-            this.genre = Stream.of(serieData.genre().split(","))
+        // -------------------------------
+        // GÊNEROS
+        // -------------------------------
+        if (serieData.genre() != null) {
+            Arrays.stream(serieData.genre().split(","))
                     .map(String::trim)
                     .map(Genres::fromForeignName)
                     .filter(Objects::nonNull)
-                    .toList();
-        } catch (NullPointerException ex) {
-            this.genre = List.of();
+                    .forEach(g -> {
+                        Genre genre = genreRepo.findByCode(g)
+                                .orElseGet(() -> genreRepo.save(new Genre(g)));
+                        this.genres.add(genre);
+                    });
         }
 
-        try {
-            this.actors = Stream.of(serieData.actors().split(","))
+        // -------------------------------
+        // ATORES
+        // -------------------------------
+        if (serieData.actors() != null) {
+            Arrays.stream(serieData.actors().split(","))
                     .map(String::trim)
-                    .toList();;
-        } catch (NullPointerException ex) {
-            this.actors = null;
+                    .forEach(actorName -> {
+                        Actor actor = actorRepo.findByNameIgnoreCase(actorName)
+                                .orElseGet(() -> actorRepo.save(new Actor(actorName)));
+                        this.actors.add(actor);
+                    });
         }
 
         this.plot = serieData.plot();
         this.poster = serieData.poster();
     }
 
+
     @Override
     public String toString() {
-        return "title='" + title + '\'' +
-                ", totalSeasons=" + totalSeasons +
-                ", seasons=" + seasons +
-                ", releasedDate=" + releasedDate +
-                ", rating=" + rating +
-                ", totalVotes=" + totalVotes +
-                ", genre=" + genre +
-                ", actors=" + actors +
-                ", plot='" + plot + '\'' +
-                ", poster='" + poster + '\'';
+        return "title='" + title + '\'' + ", totalSeasons=" + totalSeasons + ", releasedDate=" + releasedDate + ", " +
+                "genres=" + genres + ", actors=" + actors + ", rating=" + rating + ", totalVotes=" + totalVotes +
+                ", plot='" + plot + '\'' + ", poster='" + poster + '\'';
     }
 
     public String getTitle() {

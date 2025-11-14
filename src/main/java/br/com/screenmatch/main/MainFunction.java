@@ -3,10 +3,17 @@ package br.com.screenmatch.main;
 import br.com.screenmatch.models.SeasonData;
 import br.com.screenmatch.models.Serie;
 import br.com.screenmatch.models.SerieData;
+import br.com.screenmatch.repository.ActorRepository;
+import br.com.screenmatch.repository.GenreRepository;
+import br.com.screenmatch.repository.SerieRepository;
 import br.com.screenmatch.service.ApiRequests;
 import br.com.screenmatch.service.ParseData;
+import br.com.screenmatch.service.SerieFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Scanner;
 
 public class MainFunction {
     private final Scanner SC = new Scanner(System.in);
@@ -16,6 +23,19 @@ public class MainFunction {
     private final String URL_BASE = "https://www.omdbapi.com/?t=";
     private final String API_KEY = "&apikey=5c7784a4";
     private List<Serie> seriesList = new ArrayList<>();
+    private SerieRepository serieRepository;
+    private GenreRepository genreRepository;
+    private ActorRepository actorRepository;
+
+
+    public MainFunction(SerieRepository serieRepository,
+                        GenreRepository genreRepository,
+                        ActorRepository actorRepository) {
+        this.serieRepository = serieRepository;
+        this.genreRepository = genreRepository;
+        this.actorRepository = actorRepository;
+    }
+
 
     public void showMenu() {
         int option;
@@ -53,9 +73,11 @@ public class MainFunction {
     }
 
     private void searchSerie() {
-        SerieData data = getSerieData();
-        seriesList.add(new Serie(data));
-        System.out.println(data);
+        SerieData serieData = getSerieData();
+        SerieFactory serieFactory = new SerieFactory(genreRepository, actorRepository);
+        Serie serie = serieFactory.fromData(serieData);
+        serieRepository.save(serie);
+        System.out.println(serieData);
     }
 
     private SerieData getSerieData() {
@@ -78,8 +100,8 @@ public class MainFunction {
     }
 
     private void displaySeries() {
-        seriesList.stream()
-                        .sorted(Comparator.comparing(Serie::getTitle))
-                        .forEach(System.out::println);
+        serieRepository.findAllWithGenresAndActors().stream()
+                .sorted(Comparator.comparing(Serie::getTitle))
+                .forEach(System.out::println);
     }
 }
